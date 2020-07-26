@@ -1,12 +1,49 @@
-import 'package:flutter/material.dart';
 import 'package:clima/utilities/constants.dart';
+import 'package:flutter/material.dart';
+
+import '../services/weather.dart';
 
 class LocationScreen extends StatefulWidget {
+  LocationScreen({this.locationWeather});
+  final locationWeather;
   @override
   _LocationScreenState createState() => _LocationScreenState();
 }
 
 class _LocationScreenState extends State<LocationScreen> {
+  int temperatureC;
+  int temperatureF;
+  String weatherIcon;
+  String cityName;
+  String weatherMessage;
+  String weatherDescription;
+
+  @override
+  void initState() {
+    super.initState();
+    updateUI(widget.locationWeather);
+  }
+
+  void updateUI(dynamic weatherData) {
+    WeatherModel weather = WeatherModel();
+    setState(() {
+      if (weatherData == null) {
+        temperatureC = 0;
+        temperatureF = 0;
+        weatherIcon = 'Error';
+        weatherMessage = 'Unable to get weather data';
+        cityName = '';
+        return;
+      }
+      temperatureC = weatherData['tempC'];
+      temperatureF = weatherData['tempF'];
+      weatherIcon = weather.getWeatherIcon(weatherData['condition']);
+      weatherMessage = weather.getMessage(temperatureC);
+      cityName = weatherData['name'];
+      weatherDescription = weatherData['desc'];
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -26,19 +63,38 @@ class _LocationScreenState extends State<LocationScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                textDirection: TextDirection.rtl,
                 children: <Widget>[
                   FlatButton(
-                    onPressed: () {},
-                    child: Icon(
-                      Icons.near_me,
-                      size: 50.0,
+                    onPressed: () async {
+                      var weatherData =
+                          await WeatherModel().getWeatherDataByCity(cityName);
+                      updateUI(weatherData);
+                    },
+                    child: Text(
+                      'Find',
+                      style: kButtonTextStyle,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      style: TextStyle(
+                        color: Colors.black,
+                      ),
+                      decoration: kTextFieldInputDecoration,
+                      onChanged: (value) {
+                        cityName = value;
+                      },
                     ),
                   ),
                   FlatButton(
-                    onPressed: () {},
+                    onPressed: () async {
+                      var weatherData =
+                          await WeatherModel().getWeatherDataByGeoLOcation();
+                      updateUI(weatherData);
+                    },
                     child: Icon(
-                      Icons.location_city,
+                      Icons.near_me,
                       size: 50.0,
                     ),
                   ),
@@ -49,11 +105,11 @@ class _LocationScreenState extends State<LocationScreen> {
                 child: Row(
                   children: <Widget>[
                     Text(
-                      '32°',
+                      '$temperatureC°C/$temperatureF F',
                       style: kTempTextStyle,
                     ),
                     Text(
-                      '☀️',
+                      weatherIcon,
                       style: kConditionTextStyle,
                     ),
                   ],
@@ -62,7 +118,7 @@ class _LocationScreenState extends State<LocationScreen> {
               Padding(
                 padding: EdgeInsets.only(right: 15.0),
                 child: Text(
-                  "It's 🍦 time in San Francisco!",
+                  weatherDescription.toUpperCase() + ".\n  " + weatherMessage,
                   textAlign: TextAlign.right,
                   style: kMessageTextStyle,
                 ),
